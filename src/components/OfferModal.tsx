@@ -165,6 +165,11 @@ export const OfferModal: React.FC<OfferModalProps> = ({
                     Jmf: {offer.compare_price}
                   </div>
                 )}
+                {offer.weight && (
+                  <div className="text-xs text-slate-600 font-semibold">
+                    {offer.weight}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -178,6 +183,24 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               </div>
             )}
           </div>
+          
+          {/* Flavors / Variants */}
+          {offer.allFlavors && offer.allFlavors.length > 1 && (
+            <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm">
+              <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                Tillgängliga varianter
+              </h4>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-slate-600">
+                {offer.allFlavors.map((flavor, idx) => (
+                  <li key={idx} className="flex items-start gap-1.5 bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
+                    <span className="text-slate-400 mt-0.5">&bull;</span>
+                    <span className="leading-tight">{flavor}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Store Info */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200 space-y-3 shadow-sm">

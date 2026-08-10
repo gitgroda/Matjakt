@@ -139,7 +139,11 @@ export const OfferCard: React.FC<OfferCardProps> = ({
         <div className="p-5 sm:p-6 flex flex-col justify-between flex-1 bg-white">
           <div className="mb-4">
             <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">
-              <span className="truncate">{offer.store?.name || 'Uppsala'}</span>
+              <span className="truncate">
+                {offer.store?.allStoreNames && offer.store.allStoreNames.length > 1
+                  ? `${offer.store.chain} (${offer.store.allStoreNames.length} butiker)`
+                  : offer.store?.name || 'Uppsala'}
+              </span>
             </div>
 
             <h3 className="text-base sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-[#E31837] transition-colors min-h-[3rem]">
@@ -174,6 +178,11 @@ export const OfferCard: React.FC<OfferCardProps> = ({
               {offer.compare_price && (
                 <span className="text-[11px] font-semibold text-slate-400">
                   Jmf {offer.compare_price}
+                </span>
+              )}
+              {offer.weight && (
+                <span className="text-[11px] font-semibold text-slate-400">
+                  {offer.weight}
                 </span>
               )}
             </div>

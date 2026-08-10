@@ -19,6 +19,7 @@ export interface Offer {
   offer_price: number;
   price_unit: string;
   compare_price?: string;
+  weight?: string;
   reference_price?: number;
   image_url: string;
   category: string;
@@ -27,6 +28,7 @@ export interface Offer {
   is_membership?: boolean;
   created_at?: string;
   store?: Store;
+  allFlavors?: string[];
 }
 
 export type SortOption = 'best-price' | 'alphabetical' | 'ending-soon' | 'discount';

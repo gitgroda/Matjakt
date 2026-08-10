@@ -6,7 +6,7 @@ import { MapPin, Clock, Navigation, Search, Store as StoreIcon } from 'lucide-re
 
 interface StoresViewProps {
   stores: Store[];
-  onSelectChain: (chain: any) => void;
+  onSelectChain: (chain: string) => void;
 }
 
 export const StoresView: React.FC<StoresViewProps> = ({ stores, onSelectChain }) => {

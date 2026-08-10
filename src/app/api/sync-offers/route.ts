@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import ws from 'ws';
 import vm from 'vm';
+import { normalizeCategory } from '@/lib/utils/categoryMapper';
 
 const ICA_STORES = [
   { id: '11111111-1111-1111-1111-111111111111', name: 'ICA Maxi Stenhagen', chain: 'ICA', url: 'https://www.ica.se/butiker/maxi/uppsala/maxi-ica-stormarknad-stenhagen-uppsala-1004488/erbjudanden/' },
@@ -89,14 +90,15 @@ async function scrapeIcaOffers(store: any) {
 
         return {
           store_id: store.id,
-          title: title + (mechanic ? ` (${mechanic})` : ''),
+          title: title,
           original_price: regPrice > 0 ? regPrice : null,
           offer_price: Number(offerPrice.toFixed(2)),
           price_unit: mechanic || 'kr/st',
           image_url: imageUrl,
           compare_price: compPrice,
+          weight: item.details?.packageInformation || null,
           reference_price: offerPrice > 0 ? Number((offerPrice * 1.1).toFixed(2)) : undefined,
-        category: mapCategoryName(categoryName),
+        category: normalizeCategory('ICA', categoryName, title),
         valid_from: validFrom,
         valid_to: item.validTo ? item.validTo.split('T')[0] : new Date(Date.now() + 6 * 86400000).toISOString().split('T')[0],
         is_membership: isMembership
@@ -156,14 +158,15 @@ async function scrapeAxfoodOffers(chain: 'Willys' | 'Hemköp', storeId: string) 
 
           allOffers.push({
             store_id: storeId,
-            title: item.name + (fullPromoString ? ` (${fullPromoString})` : ''),
+            title: item.name,
             original_price: regPrice && regPrice > offerPriceVal ? Number(regPrice.toFixed(2)) : null,
             offer_price: Number(offerPriceVal.toFixed(2)),
             price_unit: pUnit,
             image_url: item.image?.url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80',
             compare_price: compPrice,
+            weight: item.displayVolume || null,
             reference_price: offerPriceVal ? Number((offerPriceVal * 1.1).toFixed(2)) : undefined,
-            category: mapCategoryName(cat),
+            category: normalizeCategory(chain, cat, item.name),
             valid_from: new Date().toISOString().split('T')[0],
             valid_to: validToStr,
             is_membership: Boolean(promo.campaignType === 'LOYALTY' || promo.rewardType === 'CLUB')
@@ -175,16 +178,6 @@ async function scrapeAxfoodOffers(chain: 'Willys' | 'Hemköp', storeId: string) 
     }
   }
   return allOffers;
-}
-
-function mapCategoryName(catStr: string) {
-  const c = (catStr || '').toLowerCase();
-  if (c.includes('kött') || c.includes('chark') || c.includes('fågel') || c.includes('kott')) return 'Kött & Chark';
-  if (c.includes('fisk') || c.includes('skaldjur')) return 'Fisk & Skaldjur';
-  if (c.includes('mejeri') || c.includes('ost') || c.includes('ägg') || c.includes('agg')) return 'Mejeri & Ägg';
-  if (c.includes('frukt') || c.includes('grönt') || c.includes('gront')) return 'Frukt & Grönt';
-  if (c.includes('dryck') || c.includes('godis') || c.includes('snacks')) return 'Dryck & Godis';
-  return 'Skafferi';
 }
 
 export async function GET() {

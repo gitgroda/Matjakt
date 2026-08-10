@@ -91,6 +91,7 @@ export async function getOffers(params: QueryParams): Promise<{ data: Offer[]; i
         price_unit: item.price_unit,
         compare_price: item.compare_price || undefined,
         reference_price: item.reference_price ? Number(item.reference_price) : undefined,
+        weight: item.weight || undefined,
         image_url: item.image_url,
         category: item.category,
         valid_from: item.valid_from,

@@ -20,8 +20,7 @@ export default function Home() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedIcaStores, setSelectedIcaStores] = useState<string[]>([]);
   const [isMultiBuyOnly, setIsMultiBuyOnly] = useState<boolean>(false);
-  const [sortBy, setSortBy] = useState<SortOption>('best-price');
-
+  
   const [offers, setOffers] = useState<Offer[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLive, setIsLive] = useState<boolean>(isSupabaseConfigured);
@@ -65,8 +64,7 @@ export default function Home() {
     setLoading(true);
 
     getOffers({
-      searchQuery: debouncedSearch,
-      sortBy: sortBy,
+      searchQuery: debouncedSearch
     }).then((res) => {
       if (isMounted) {
         setOffers(res.data);
@@ -78,7 +76,7 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [debouncedSearch, sortBy]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     getStores().then((res) => {
@@ -133,10 +131,11 @@ export default function Home() {
     setSelectedCategories([]);
     setSelectedIcaStores([]);
     setIsMultiBuyOnly(false);
-    setSortBy('best-price');
-  };
+      };
 
   const filteredOffers = offers.filter((offer) => {
+    const matchesSearch = !searchQuery || offer.title.toLowerCase().includes(searchQuery.toLowerCase()) || (offer.store && offer.store.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
     const isIca = offer.store?.chain === 'ICA';
     const hasSpecificIca = selectedIcaStores.length > 0;
     const hasChains = selectedChains.length > 0;
@@ -155,8 +154,80 @@ export default function Home() {
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(offer.category);
     const matchesMultiBuy = !isMultiBuyOnly || (offer.price_unit && offer.price_unit.toLowerCase().includes('för'));
     
-    return matchesChain && matchesCategory && matchesMultiBuy;
+    return matchesSearch && matchesChain && matchesCategory && matchesMultiBuy;
   });
+
+  
+  filteredOffers.sort((a, b) => {
+    const discountA = a.original_price ? (a.original_price - a.offer_price) / a.original_price : 0;
+    const discountB = b.original_price ? (b.original_price - b.offer_price) / b.original_price : 0;
+    return discountB - discountA;
+  });
+
+  const getFlavorBaseName = (title: string): string | null => {
+    const t = title.toLowerCase();
+    const flavorProducts = [
+      'energidryck', 'celsius', 'nocco', 'monster', 'red bull',
+      'kolsyrat vatten', 'loka', 'ramlösa', 'kvarg', 'yoghurt',
+      'proteinbar', 'barebells', 'kexchoklad', 'läsk', 'fanta', 'coca-cola',
+      'pepsi', 'marabou', 'protein', 'schysst käk', 'soppa', 'färdigrätt',
+      'pizza', 'paj', 'chips', 'olw', 'estrella'
+    ];
+
+    for (const prod of flavorProducts) {
+      if (t.includes(prod)) {
+        return prod.charAt(0).toUpperCase() + prod.slice(1);
+      }
+    }
+    return null;
+  };
+
+  const deduplicatedOffers: Offer[] = [];
+  const groupingMap = new Map<string, Offer>();
+
+  for (const offer of filteredOffers) {
+    const baseName = getFlavorBaseName(offer.title);
+    let key = '';
+    
+    if (offer.store?.chain === 'ICA') {
+      key = `ICA|${baseName || offer.title}|${offer.offer_price}|${offer.price_unit}`;
+    } else if (baseName) {
+      key = `${offer.store?.id}|${baseName}|${offer.offer_price}|${offer.price_unit}`;
+    }
+
+    if (key && groupingMap.has(key)) {
+      const existing = groupingMap.get(key)!;
+      
+      if (offer.store?.chain === 'ICA' && existing.store && offer.store) {
+        if (!existing.store.allStoreNames) {
+          existing.store.allStoreNames = [existing.store.name];
+        }
+        if (!existing.store.allStoreNames.includes(offer.store.name)) {
+          existing.store.allStoreNames.push(offer.store.name);
+        }
+      }
+      
+      if (baseName && existing.title !== offer.title && !existing.title.includes('(Flera smaker)')) {
+        if (!existing.allFlavors) {
+          existing.allFlavors = [existing.title];
+          existing.title = `${baseName} (Flera smaker)`;
+        }
+        if (!existing.allFlavors.includes(offer.title)) {
+          existing.allFlavors.push(offer.title);
+        }
+      } else if (baseName && existing.title.includes('(Flera smaker)')) {
+          if (!existing.allFlavors) existing.allFlavors = [];
+          if (!existing.allFlavors.includes(offer.title)) existing.allFlavors.push(offer.title);
+      }
+    } else {
+      const newOffer = { ...offer, store: offer.store ? { ...offer.store, allStoreNames: [offer.store.name] } : undefined };
+      if (key) {
+        groupingMap.set(key, newOffer);
+      }
+      deduplicatedOffers.push(newOffer);
+    }
+  }
+
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans selection:bg-red-200 selection:text-red-900">
@@ -172,11 +243,9 @@ export default function Home() {
           isMultiBuyOnly={isMultiBuyOnly}
           setIsMultiBuyOnly={setIsMultiBuyOnly}
           stores={stores}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        isLive={isLive}
+                isLive={isLive}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
-        totalResultsCount={filteredOffers.length}
+        totalResultsCount={deduplicatedOffers.length}
       />
 
       <main className="max-w-4xl mx-auto px-4 pt-6">
@@ -197,7 +266,7 @@ export default function Home() {
             <div className="flex items-center justify-between py-2 mb-6 px-1 text-sm text-slate-500 border-b border-slate-200 pb-4">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-700">
-                  {loading ? 'Hämtar erbjudanden...' : `${filteredOffers.length} resultat`}
+                  {loading ? 'Hämtar erbjudanden...' : `${deduplicatedOffers.length} resultat`}
                 </span>
                 {selectedChains.length > 0 && (
                   <span className="text-slate-500">
@@ -233,7 +302,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            ) : filteredOffers.length === 0 ? (
+            ) : deduplicatedOffers.length === 0 ? (
               <EmptyState
                 searchQuery={searchQuery}
                 selectedChains={selectedChains}
@@ -251,8 +320,8 @@ export default function Home() {
                         <Sparkles className="w-5 h-5 text-red-600" />
                         <h2 className="text-xl font-black text-slate-900 tracking-tight">Veckans bästa klipp</h2>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                        {filteredOffers.slice(0, 4).map((offer) => (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1 sm:gap-1">
+                        {deduplicatedOffers.filter(o => !['Hem & Hushåll', 'Hälsa & Hygien', 'Övrigt'].includes(o.category)).slice(0, 32).map((offer) => (
                           <OfferCard
                             key={offer.id}
                             offer={offer}
@@ -263,32 +332,10 @@ export default function Home() {
                         ))}
                       </div>
                     </section>
-
-                    <section>
-                      <div className="flex items-center gap-2 mb-4">
-                        <Layers className="w-5 h-5 text-emerald-600" />
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Nytt från skafferiet & frukt</h2>
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                        {filteredOffers
-                          .filter(o => o.category.includes('Skafferi') || o.category.includes('Frukt'))
-                          .slice(0, 8)
-                          .map((offer) => (
-                            <OfferCard
-                              key={offer.id}
-                              offer={offer}
-                              onSelectOffer={(off) => setSelectedOfferModal(off)}
-                              isInList={shoppingList.some((item) => item.offer.id === offer.id)}
-                              onToggleShoppingList={handleToggleShoppingList}
-                            />
-                          ))}
-                      </div>
-                    </section>
-
                     <section>
                       <h2 className="text-xl font-black text-slate-900 tracking-tight mb-4">Fler erbjudanden</h2>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                        {filteredOffers.slice(4, visibleCount).map((offer) => (
+                        {deduplicatedOffers.slice(32, visibleCount).map((offer) => (
                           <OfferCard
                             key={offer.id}
                             offer={offer}
@@ -298,7 +345,7 @@ export default function Home() {
                           />
                         ))}
                       </div>
-                      {visibleCount < filteredOffers.length && (
+                      {visibleCount < deduplicatedOffers.length && (
                         <div className="mt-12 flex justify-center">
                           <button
                             onClick={() => setVisibleCount(v => v + 60)}
@@ -311,35 +358,36 @@ export default function Home() {
                     </section>
                   </>
                 ) : (
-                  <div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                      {filteredOffers.slice(0, visibleCount).map((offer) => (
-                        <OfferCard
-                          key={offer.id}
-                          offer={offer}
-                          onSelectOffer={(off) => setSelectedOfferModal(off)}
-                          isInList={shoppingList.some((item) => item.offer.id === offer.id)}
-                          onToggleShoppingList={handleToggleShoppingList}
-                        />
-                      ))}
-                    </div>
-                    {visibleCount < filteredOffers.length && (
-                      <div className="mt-12 flex justify-center">
-                        <button
-                          onClick={() => setVisibleCount(v => v + 60)}
-                          className="bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 font-bold py-3.5 px-8 rounded-2xl transition-all shadow-sm"
-                        >
-                          Visa fler erbjudanden
-                        </button>
-                      </div>
-                    )}
+
+                <div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+                    {deduplicatedOffers.slice(0, visibleCount).map((offer) => (
+                      <OfferCard
+                        key={offer.id}
+                        offer={offer}
+                        onSelectOffer={(off) => setSelectedOfferModal(off)}
+                        isInList={shoppingList.some((item) => item.offer.id === offer.id)}
+                        onToggleShoppingList={handleToggleShoppingList}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
+                  {visibleCount < deduplicatedOffers.length && (
+                    <div className="mt-12 flex justify-center">
+                      <button
+                        onClick={() => setVisibleCount(v => v + 60)}
+                        className="bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 font-bold py-3.5 px-8 rounded-2xl transition-all shadow-sm"
+                      >
+                        Visa fler erbjudanden
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </main>
 
       <OfferModal
         offer={selectedOfferModal}

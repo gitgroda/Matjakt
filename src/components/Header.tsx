@@ -6,17 +6,15 @@ interface HeaderProps {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   selectedChains: string[];
-  setSelectedChains: (c: any) => void;
+  setSelectedChains: React.Dispatch<React.SetStateAction<string[]>>;
   selectedCategories: string[];
-  setSelectedCategories: (c: any) => void;
+  setSelectedCategories: React.Dispatch<React.SetStateAction<string[]>>;
   selectedIcaStores: string[];
-  setSelectedIcaStores: (c: any) => void;
+  setSelectedIcaStores: React.Dispatch<React.SetStateAction<string[]>>;
   isMultiBuyOnly: boolean;
-  setIsMultiBuyOnly: (v: any) => void;
+  setIsMultiBuyOnly: React.Dispatch<React.SetStateAction<boolean>>;
   stores: Store[];
-  sortBy: SortOption;
-  setSortBy: (sort: SortOption) => void;
-  isLive: boolean;
+    isLive: boolean;
   onOpenSupabaseModal: () => void;
   totalResultsCount: number;
 }
@@ -24,11 +22,16 @@ interface HeaderProps {
 const CATEGORIES = [
   'Kött, fågel & fläsk',
   'Chark & Färdigmat',
-  'Mejeri & Ägg',
+  'Mejeri, Ost & Ägg',
   'Frukt & Grönt',
   'Skafferi',
   'Fisk & Skaldjur',
   'Dryck & Godis',
+  'Bröd & Bageri',
+  'Frys',
+  'Hem & Hushåll',
+  'Hälsa & Hygien',
+  'Övrigt'
 ];
 const CHAINS = ['ICA', 'Willys', 'Hemköp'];
 
@@ -39,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   selectedIcaStores, setSelectedIcaStores,
   isMultiBuyOnly, setIsMultiBuyOnly,
   stores,
-  sortBy, setSortBy,
+  
   isLive, onOpenSupabaseModal, totalResultsCount
 }) => {
   const toggleChain = (c: string) => setSelectedChains((prev: string[]) => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
@@ -47,6 +50,12 @@ export const Header: React.FC<HeaderProps> = ({
   const toggleIcaStore = (c: string) => setSelectedIcaStores((prev: string[]) => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
   const icaStores = stores.filter(s => s.chain === 'ICA').sort((a, b) => a.name.localeCompare(b.name));
+
+  const [openDropdown, setOpenDropdown] = React.useState<string | null>(null);
+  
+  const toggleDropdown = (name: string) => {
+    setOpenDropdown(prev => prev === name ? null : name);
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-900 shadow-sm">
@@ -84,74 +93,67 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="max-w-4xl mx-auto px-4 pb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          <div className="relative group z-50">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors rounded-none">
+        <div className="flex items-center gap-2 flex-wrap py-1">
+          <div className="relative z-50" onMouseEnter={() => setOpenDropdown('butiker')} onMouseLeave={() => setOpenDropdown(null)}>
+            <button onClick={() => toggleDropdown('butiker')} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors rounded-none">
               Butiker
               {(selectedChains.length + selectedIcaStores.length) > 0 && <span className="bg-red-600 text-white text-[10px] w-4 h-4 rounded-none flex items-center justify-center">{selectedChains.length + selectedIcaStores.length}</span>}
               <ChevronDown className="w-3.5 h-3.5 opacity-50" />
             </button>
-            <div className="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[240px]">
-              <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col gap-2 rounded-none max-h-[70vh] overflow-y-auto">
+            <div className={`absolute left-0 top-full pt-1 transition-all duration-200 min-w-[240px] ${openDropdown === 'butiker' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+              <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col rounded-none max-h-[70vh] overflow-y-auto">
                 {CHAINS.map(chain => (
-                  <label key={chain} className="flex items-center gap-2 cursor-pointer group/label">
+                  <label key={chain} className="flex items-center gap-2 cursor-pointer p-2 -mx-1 hover:bg-slate-50 rounded-md transition-colors active:bg-slate-100">
                     <input type="checkbox" checked={selectedChains.includes(chain)} onChange={() => toggleChain(chain)} className="w-4 h-4 rounded-none border-slate-300 text-red-600 focus:ring-red-600" />
-                    <span className="text-sm font-semibold text-slate-700 group-hover/label:text-slate-900">{chain}</span>
+                    <span className="text-sm font-semibold text-slate-700">{chain}</span>
                   </label>
                 ))}
+                
+                {icaStores.length > 0 && <div className="h-px bg-slate-100 my-2 -mx-3" />}
+                
                 {icaStores.length > 0 && icaStores.map(store => (
-                  <label key={store.id} className="flex items-center gap-2 cursor-pointer group/label">
+                  <label key={store.id} className="flex items-center gap-2 cursor-pointer p-2 -mx-1 hover:bg-slate-50 rounded-md transition-colors active:bg-slate-100">
                     <input type="checkbox" checked={selectedIcaStores.includes(store.name)} onChange={() => toggleIcaStore(store.name)} className="w-4 h-4 rounded-none border-slate-300 text-red-600 focus:ring-red-600" />
-                    <span className="text-sm font-semibold text-slate-700 group-hover/label:text-slate-900">{store.name}</span>
+                    <span className="text-sm font-semibold text-slate-700">{store.name}</span>
                   </label>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="relative group z-40">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors rounded-none">
+          <div className="relative z-40" onMouseEnter={() => setOpenDropdown('kategorier')} onMouseLeave={() => setOpenDropdown(null)}>
+            <button onClick={() => toggleDropdown('kategorier')} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors rounded-none">
               Kategorier
               {selectedCategories.length > 0 && <span className="bg-red-600 text-white text-[10px] w-4 h-4 rounded-none flex items-center justify-center">{selectedCategories.length}</span>}
               <ChevronDown className="w-3.5 h-3.5 opacity-50" />
             </button>
-            <div className="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[220px]">
-              <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col gap-2 rounded-none max-h-[60vh] overflow-y-auto">
+            <div className={`absolute left-0 top-full pt-1 transition-all duration-200 min-w-[220px] ${openDropdown === 'kategorier' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+              <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col rounded-none max-h-[60vh] overflow-y-auto">
                 {CATEGORIES.map(cat => (
-                  <label key={cat} className="flex items-center gap-2 cursor-pointer group/label">
+                  <label key={cat} className="flex items-center gap-2 cursor-pointer p-2 -mx-1 hover:bg-slate-50 rounded-md transition-colors active:bg-slate-100">
                     <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="w-4 h-4 rounded-none border-slate-300 text-red-600 focus:ring-red-600" />
-                    <span className="text-sm font-semibold text-slate-700 group-hover/label:text-slate-900">{cat}</span>
+                    <span className="text-sm font-semibold text-slate-700">{cat}</span>
                   </label>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="relative group z-30">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors rounded-none">
+          <div className="relative z-30" onMouseEnter={() => setOpenDropdown('special')} onMouseLeave={() => setOpenDropdown(null)}>
+            <button onClick={() => toggleDropdown('special')} className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 transition-colors rounded-none">
               Specialfilter
               {isMultiBuyOnly && <span className="bg-red-600 text-white text-[10px] w-4 h-4 rounded-none flex items-center justify-center">1</span>}
               <ChevronDown className="w-3.5 h-3.5 opacity-50" />
             </button>
-            <div className="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[220px]">
-              <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col gap-2 rounded-none">
-                <label className="flex items-center gap-2 cursor-pointer group/label">
+            <div className={`absolute left-0 top-full pt-1 transition-all duration-200 min-w-[220px] ${openDropdown === 'special' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+              <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col rounded-none">
+                <label className="flex items-center gap-2 cursor-pointer p-2 -mx-1 hover:bg-slate-50 rounded-md transition-colors active:bg-slate-100">
                   <input type="checkbox" checked={isMultiBuyOnly} onChange={() => setIsMultiBuyOnly((prev: boolean) => !prev)} className="w-4 h-4 rounded-none border-slate-300 text-red-600 focus:ring-red-600" />
-                  <span className="text-sm font-semibold text-slate-700 group-hover/label:text-slate-900">Flerköpsrabatter</span>
+                  <span className="text-sm font-semibold text-slate-700">Flerköpsrabatter</span>
                 </label>
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0 bg-white border border-slate-200 rounded-none px-2 shadow-sm">
-          <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortOption)} className="bg-transparent text-xs font-bold text-slate-700 py-1.5 focus:outline-none cursor-pointer">
-            <option value="price-asc">Lägst pris</option>
-            <option value="price-desc">Högst pris</option>
-            <option value="discount-desc">Störst rabatt</option>
-            <option value="name-asc">A-Ö</option>
-          </select>
         </div>
       </div>
     </header>
