@@ -232,7 +232,7 @@ export default function Home() {
                     <section>
                       <div className="flex items-center gap-2 mb-4">
                         <Sparkles className="w-5 h-5 text-red-600" />
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Veckans Bästa Klipp</h2>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Veckans bästa klipp</h2>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
                         {offers.slice(0, 4).map((offer) => (
@@ -250,7 +250,7 @@ export default function Home() {
                     <section>
                       <div className="flex items-center gap-2 mb-4">
                         <Layers className="w-5 h-5 text-emerald-600" />
-                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Nytt från Skafferiet & Frukt</h2>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Nytt från skafferiet & frukt</h2>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
                         {offers
@@ -269,7 +269,7 @@ export default function Home() {
                     </section>
 
                     <section>
-                      <h2 className="text-xl font-black text-slate-900 tracking-tight mb-4">Fler Erbjudanden</h2>
+                      <h2 className="text-xl font-black text-slate-900 tracking-tight mb-4">Fler erbjudanden</h2>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
                         {offers.slice(4).map((offer) => (
                           <OfferCard

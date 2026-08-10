@@ -109,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            Alla Kedjor
+            Alla kedjor
           </button>
 
           <button
