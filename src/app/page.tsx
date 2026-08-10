@@ -144,7 +144,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-24 font-sans selection:bg-emerald-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans selection:bg-red-200 selection:text-red-900">
       {/* Sticky Header */}
       <Header
         searchQuery={searchQuery}
@@ -161,8 +161,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <main className="max-w-4xl mx-auto px-4 pt-4">
-        {/* Render Stores Tab */}
+      <main className="max-w-4xl mx-auto px-4 pt-6">
         {activeTab === 'stores' ? (
           <StoresView
             stores={stores}
@@ -172,22 +171,21 @@ export default function Home() {
             }}
           />
         ) : (
-          /* Render Offers Feed */
           <div>
             {/* Status & Results Summary Bar */}
-            <div className="flex items-center justify-between py-2 mb-3 px-1 text-xs text-slate-400 border-b border-slate-900">
+            <div className="flex items-center justify-between py-2 mb-6 px-1 text-sm text-slate-500 border-b border-slate-200 pb-4">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-200">
-                  {loading ? 'Söker erbjudanden...' : `${offers.length} erbjudanden i Uppsala`}
+                <span className="font-semibold text-slate-700">
+                  {loading ? 'Hämtar erbjudanden...' : `${offers.length} resultat`}
                 </span>
                 {selectedChain !== 'Alla' && (
-                  <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-semibold">
-                    {selectedChain}
+                  <span className="text-slate-500">
+                    &bull; {selectedChain}
                   </span>
                 )}
                 {selectedCategory !== 'Alla' && (
-                  <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-semibold">
-                    {selectedCategory}
+                  <span className="text-slate-500">
+                    &bull; {selectedCategory}
                   </span>
                 )}
               </div>
@@ -195,31 +193,30 @@ export default function Home() {
               {shoppingList.length > 0 && (
                 <button
                   onClick={() => setActiveTab('list')}
-                  className="text-emerald-400 font-extrabold flex items-center gap-1 hover:underline"
+                  className="text-red-600 font-bold flex items-center gap-1.5 hover:underline bg-red-50 px-3 py-1.5 rounded-full"
                 >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  Visa lista ({shoppingList.length})
+                  <ShoppingBag className="w-4 h-4" />
+                  Lista ({shoppingList.length})
                 </button>
               )}
             </div>
 
             {/* Loading Grid Skeleton */}
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                   <div
                     key={i}
-                    className="bg-slate-900/60 rounded-2xl p-3 border border-slate-800 animate-pulse space-y-3"
+                    className="bg-white rounded-2xl p-4 border border-slate-100 animate-pulse space-y-4 shadow-sm"
                   >
-                    <div className="aspect-[4/3] w-full bg-slate-800 rounded-xl" />
-                    <div className="h-4 bg-slate-800 rounded w-3/4" />
-                    <div className="h-4 bg-slate-800 rounded w-1/2" />
-                    <div className="h-6 bg-slate-800 rounded w-full" />
+                    <div className="aspect-[4/3] w-full bg-slate-100 rounded-xl" />
+                    <div className="h-4 bg-slate-100 rounded w-3/4" />
+                    <div className="h-4 bg-slate-100 rounded w-1/2" />
+                    <div className="h-8 bg-slate-100 rounded w-full mt-4" />
                   </div>
                 ))}
               </div>
             ) : offers.length === 0 ? (
-              /* Empty State */
               <EmptyState
                 searchQuery={searchQuery}
                 selectedChain={selectedChain}
@@ -227,17 +224,79 @@ export default function Home() {
                 onResetFilters={handleResetFilters}
               />
             ) : (
-              /* Offers Grid */
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
-                {offers.map((offer) => (
-                  <OfferCard
-                    key={offer.id}
-                    offer={offer}
-                    onSelectOffer={(off) => setSelectedOfferModal(off)}
-                    isInList={shoppingList.some((item) => item.offer.id === offer.id)}
-                    onToggleShoppingList={handleToggleShoppingList}
-                  />
-                ))}
+              /* Offers Display */
+              <div className="space-y-12">
+                {/* If no active filters, show a curated feed layout */}
+                {!searchQuery && selectedChain === 'Alla' && selectedCategory === 'Alla' ? (
+                  <>
+                    <section>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-5 h-5 text-red-600" />
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Veckans Bästa Klipp</h2>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+                        {offers.slice(0, 4).map((offer) => (
+                          <OfferCard
+                            key={offer.id}
+                            offer={offer}
+                            onSelectOffer={(off) => setSelectedOfferModal(off)}
+                            isInList={shoppingList.some((item) => item.offer.id === offer.id)}
+                            onToggleShoppingList={handleToggleShoppingList}
+                          />
+                        ))}
+                      </div>
+                    </section>
+
+                    <section>
+                      <div className="flex items-center gap-2 mb-4">
+                        <Layers className="w-5 h-5 text-emerald-600" />
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight">Nytt från Skafferiet & Frukt</h2>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+                        {offers
+                          .filter(o => o.category.includes('Skafferi') || o.category.includes('Frukt'))
+                          .slice(0, 8)
+                          .map((offer) => (
+                            <OfferCard
+                              key={offer.id}
+                              offer={offer}
+                              onSelectOffer={(off) => setSelectedOfferModal(off)}
+                              isInList={shoppingList.some((item) => item.offer.id === offer.id)}
+                              onToggleShoppingList={handleToggleShoppingList}
+                            />
+                          ))}
+                      </div>
+                    </section>
+
+                    <section>
+                      <h2 className="text-xl font-black text-slate-900 tracking-tight mb-4">Fler Erbjudanden</h2>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+                        {offers.slice(4).map((offer) => (
+                          <OfferCard
+                            key={offer.id}
+                            offer={offer}
+                            onSelectOffer={(off) => setSelectedOfferModal(off)}
+                            isInList={shoppingList.some((item) => item.offer.id === offer.id)}
+                            onToggleShoppingList={handleToggleShoppingList}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                ) : (
+                  /* Standard Grid for filtered results */
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+                    {offers.map((offer) => (
+                      <OfferCard
+                        key={offer.id}
+                        offer={offer}
+                        onSelectOffer={(off) => setSelectedOfferModal(off)}
+                        isInList={shoppingList.some((item) => item.offer.id === offer.id)}
+                        onToggleShoppingList={handleToggleShoppingList}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

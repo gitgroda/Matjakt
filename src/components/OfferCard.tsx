@@ -25,17 +25,16 @@ export const OfferCard: React.FC<OfferCardProps> = ({
       ? Math.round(((offer.original_price - offer.offer_price) / offer.original_price) * 100)
       : null;
 
-  // Chain Badge Colors
   const getChainBadgeStyle = (chain?: string) => {
     switch (chain) {
       case 'Willys':
-        return 'bg-red-600 text-white font-bold border-red-500';
+        return 'bg-red-600 text-white font-bold';
       case 'Hemköp':
-        return 'bg-emerald-600 text-white font-bold border-emerald-500';
+        return 'bg-emerald-600 text-white font-bold';
       case 'ICA':
-        return 'bg-rose-600 text-white font-bold border-rose-500';
+        return 'bg-rose-600 text-white font-bold';
       default:
-        return 'bg-slate-700 text-slate-200 border-slate-600';
+        return 'bg-slate-100 text-slate-600 font-bold';
     }
   };
 
@@ -72,41 +71,32 @@ export const OfferCard: React.FC<OfferCardProps> = ({
   return (
     <div
       onClick={() => onSelectOffer(offer)}
-      className="group relative bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:border-slate-700 transition-all duration-300 flex flex-col justify-between cursor-pointer"
+      className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 flex flex-col justify-between cursor-pointer"
     >
       <div>
         {/* Card Header & Image */}
-        <div className="relative aspect-[4/3] w-full bg-slate-950 overflow-hidden">
+        <div className="relative aspect-[4/3] w-full bg-slate-50 overflow-hidden flex items-center justify-center p-4">
           <img
             src={offer.image_url}
             alt={offer.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
-
           {/* Chain & Store Location Badge */}
-          <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1 items-center">
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
             <span
-              className={`px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider border shadow-md ${getChainBadgeStyle(
+              className={`px-2.5 py-1 rounded-md text-[10px] uppercase tracking-wider shadow-sm ${getChainBadgeStyle(
                 offer.store?.chain
               )}`}
             >
               {offer.store?.chain || 'Butik'}
             </span>
-
-            {offer.is_membership && (
-              <span className="bg-amber-500/90 text-amber-950 text-[10px] font-extrabold px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-md border border-amber-300">
-                <Award className="w-3 h-3" />
-                Medlem
-              </span>
-            )}
           </div>
 
           {/* Discount Badge */}
           {discountPercent && discountPercent > 0 && (
-            <div className="absolute top-2.5 right-2.5 bg-emerald-500 text-slate-950 text-xs font-black px-2 py-0.5 rounded-lg shadow-lg">
+            <div className="absolute top-3 right-3 bg-red-600 text-white text-xs font-black px-2.5 py-1 rounded-full shadow-md">
               -{discountPercent}%
             </div>
           )}
@@ -114,87 +104,92 @@ export const OfferCard: React.FC<OfferCardProps> = ({
           {/* Add to Shopping List Floating Button */}
           <button
             onClick={handleAddClick}
-            className={`absolute bottom-2.5 right-2.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-xl ${
+            className={`absolute bottom-3 right-3 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
               isInList
-                ? 'bg-emerald-500 text-slate-950 scale-105'
-                : 'bg-slate-900/90 text-white hover:bg-emerald-500 hover:text-slate-950 hover:scale-110 border border-slate-700/80'
+                ? 'bg-emerald-500 text-white scale-105'
+                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
             }`}
             title={isInList ? 'Borttagen från inköpslista' : 'Spara i inköpslista'}
           >
             {isInList ? <Check className="w-5 h-5 stroke-[3]" /> : <Plus className="w-5 h-5 stroke-[2.5]" />}
           </button>
-
-          {/* Category Tag */}
-          <div className="absolute bottom-2.5 left-2.5 text-[10px] text-slate-300 font-medium px-2 py-0.5 rounded-md bg-slate-900/70 backdrop-blur-xs border border-slate-700/50">
-            {offer.category}
-          </div>
         </div>
 
         {/* Card Body */}
-        <div className="p-3.5 flex flex-col justify-between">
+        <div className="p-4 flex flex-col justify-between bg-white border-t border-slate-100">
           <div>
-            <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium mb-1 truncate">
-              <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-              <span className="truncate">{offer.store?.name || 'Uppsala'}</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wide bg-slate-100 px-2 py-0.5 rounded-md inline-block">
+                {offer.category}
+              </div>
+              <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium truncate">
+                <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                <span className="truncate">{offer.store?.name || 'Uppsala'}</span>
+              </div>
             </div>
 
-            <h3 className="text-sm font-bold text-slate-100 line-clamp-2 leading-snug group-hover:text-emerald-400 transition-colors">
+            <h3 className="text-[15px] font-bold text-slate-900 line-clamp-2 leading-snug mt-1 group-hover:text-red-600 transition-colors">
               {offer.title}
             </h3>
+            
+            {offer.is_membership && (
+              <div className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
+                <Award className="w-3 h-3" />
+                Medlemspris
+              </div>
+            )}
           </div>
 
-          {/* Pricing Section */}
-          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-baseline justify-between">
+          {/* Pricing Section (ICA style) */}
+          <div className="mt-4 flex items-end justify-between">
             <div className="flex flex-col">
               {offer.original_price && offer.original_price > offer.offer_price && (
-                <span className="text-xs text-slate-500 line-through font-medium">
+                <span className="text-[11px] text-slate-400 line-through font-medium mb-0.5">
                   Ord. {offer.original_price.toFixed(2).replace('.', ',')} kr
                 </span>
               )}
 
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 bg-red-600 text-white px-3 py-1.5 rounded-lg shadow-sm w-max">
                 {offer.price_unit.toLowerCase().includes('för') ? (
-                  <div className="flex flex-col">
-                    <span className="text-xl font-extrabold text-emerald-400 tracking-tight leading-none mt-1">
+                  <div className="flex flex-col items-start">
+                    <span className="text-xl font-black tracking-tight leading-none">
                       {offer.price_unit}
                     </span>
-                    <span className="text-[11px] text-emerald-300/80 font-medium mt-0.5">
+                    <span className="text-[10px] text-red-100 font-medium mt-0.5">
                       ({offer.offer_price.toFixed(2).replace('.', ',')} kr/st)
                     </span>
                   </div>
                 ) : (
                   <>
-                    <span className="text-xl font-extrabold text-emerald-400 tracking-tight">
+                    <span className="text-xl font-black tracking-tight leading-none">
                       {offer.offer_price.toFixed(2).replace('.', ',')}
                     </span>
-                    <span className="text-xs text-emerald-300/90 font-semibold">{offer.price_unit}</span>
+                    <span className="text-xs text-red-100 font-bold ml-0.5">{offer.price_unit}</span>
                   </>
                 )}
               </div>
 
-              {offer.compare_price && (
-                <span className="text-[10px] text-slate-400 mt-0.5">
-                  Jämförpris: {offer.compare_price}
-                </span>
-              )}
-              {offer.reference_price && (
-                <span className="text-[10px] text-slate-400">
-                  Lägsta pris 30 dgr: {offer.reference_price.toFixed(2).replace('.', ',')} kr
-                </span>
-              )}
+              <div className="flex flex-col mt-1.5 space-y-0.5">
+                {offer.compare_price && (
+                  <span className="text-[10px] font-medium text-slate-500">
+                    Jmf: {offer.compare_price}
+                  </span>
+                )}
+                {offer.reference_price && (
+                  <span className="text-[10px] font-medium text-slate-400">
+                    Lägsta 30d: {offer.reference_price.toFixed(2).replace('.', ',')} kr
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Expiration Tag */}
-            <div
-              className={`text-[10px] px-2 py-0.5 rounded-md flex items-center gap-1 font-medium ${
-                isEndingSoon()
-                  ? 'bg-amber-950/80 text-amber-400 border border-amber-800/60 animate-pulse'
-                  : 'bg-slate-800/80 text-slate-400'
-              }`}
-            >
-              <Clock className="w-3 h-3" />
-              <span>{offer.valid_to ? `t.o.m. ${offer.valid_to.substring(5)}` : 'Veckan ut'}</span>
-            </div>
+            {isEndingSoon() && (
+              <div className="text-[10px] font-bold text-red-600 flex items-center gap-1 self-end mb-1">
+                <Clock className="w-3 h-3" />
+                Slutar snart
+              </div>
+            )}
           </div>
         </div>
       </div>
