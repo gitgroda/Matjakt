@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Copy, Check, Database, Terminal, ShieldCheck, Zap, RefreshCw } from 'lucide-react';
-import { SUPABASE_SQL_SCHEMA } from '@/lib/sqlScript';
+import { X, Database, Zap, RefreshCw, Info } from 'lucide-react';
 
 interface SupabaseModalProps {
   isOpen: boolean;
@@ -17,13 +16,11 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ isOpen, onClose, i
 
   if (!isOpen) return null;
 
-  const copySql = () => {
-    navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
   const triggerLiveSync = async () => {
+    if (!window.confirm("Är du säker på att du vill hämta nya erbjudanden? Detta kan ta en liten stund.")) {
+      return;
+    }
+    
     setIsSyncing(true);
     setSyncStatus('Hämtar färska erbjudanden från ICA, Willys & Hemköp API:er...');
     try {
@@ -67,9 +64,6 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ isOpen, onClose, i
                   {isLive ? '🟢 Ansluten' : '⚡ Demo (Mock Dataset)'}
                 </span>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                Stödda butiker: ICA Rosendal, ICA Maxi Gnista, ICA Maxi Stenhagen, Willys & Hemköp
-              </p>
             </div>
           </div>
 
@@ -84,70 +78,33 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ isOpen, onClose, i
         {/* Content */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-6 text-slate-900 bg-slate-50">
           {/* Live Sync Trigger Button */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-emerald-600" /> Live API Synkronisering
-                </h4>
-                <p className="text-xs text-slate-500 mt-1 font-medium">
-                  Kör en direkt API-hämtning för ICA Rosendal, ICA Maxi Gnista, Stenhagen, Willys & Hemköp.
-                </p>
+          <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-6">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+                <RefreshCw className={`w-8 h-8 ${isSyncing ? 'animate-spin' : ''}`} />
               </div>
+              <h4 className="text-lg font-black text-slate-900 mb-2">
+                Hämta veckans erbjudanden
+              </h4>
+              <p className="text-sm text-slate-500 font-medium max-w-sm mb-6">
+                Skrapar live från alla konfigurerade butiker och uppdaterar databasen. Detta tar cirka 15–30 sekunder beroende på hur många butiker som hämtas.
+              </p>
 
               <button
                 onClick={triggerLiveSync}
                 disabled={isSyncing}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl flex items-center gap-2 shadow-sm shrink-0 transition-all cursor-pointer"
+                className="px-8 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-bold rounded-2xl flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer w-full sm:w-auto"
               >
-                <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                {isSyncing ? 'Synkar...' : 'Kör Live API Synk'}
+                <Zap className="w-4 h-4" />
+                {isSyncing ? 'Synkroniserar erbjudanden...' : 'Starta synkronisering'}
               </button>
             </div>
 
             {syncStatus && (
-              <div className="p-3 bg-slate-100 rounded-xl text-xs font-mono text-slate-700 border border-slate-200 shadow-inner">
+              <div className="mt-4 p-4 bg-slate-100 rounded-xl text-xs font-mono text-slate-700 border border-slate-200 shadow-inner max-w-lg mx-auto text-center">
                 {syncStatus}
               </div>
             )}
-          </div>
-
-          {/* Quick Info Box */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Terminal className="w-4 h-4" /> 1. Konfigurera `.env.local`
-            </h4>
-            <div className="bg-slate-900 p-4 rounded-xl font-mono text-[11px] text-emerald-400 overflow-x-auto space-y-1.5 shadow-inner">
-              <div>NEXT_PUBLIC_SUPABASE_URL=https://ditt-projekt-id.supabase.co</div>
-              <div>NEXT_PUBLIC_SUPABASE_ANON_KEY=din-anon-key-här</div>
-            </div>
-          </div>
-
-          {/* SQL Code Preview & Copy */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-600" /> PostgreSQL SQL Schema med FTS
-              </span>
-              <button
-                onClick={copySql}
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all border border-slate-200"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-emerald-600" /> Kopierad!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" /> Kopiera SQL-Kod
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="relative bg-slate-900 rounded-2xl p-4 font-mono text-xs text-slate-300 max-h-56 overflow-y-auto leading-relaxed shadow-inner">
-              <pre>{SUPABASE_SQL_SCHEMA}</pre>
-            </div>
           </div>
         </div>
       </div>

@@ -66,14 +66,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({
           )}
         </button>
 
-        {/* Supabase SQL Tab */}
-        <button
-          onClick={onOpenSupabaseModal}
-          className="flex flex-col items-center gap-1 text-slate-500 hover:text-amber-600 transition-colors py-1 px-3"
-        >
-          <Database className="w-5 h-5" />
-          <span className="text-[10px]">SQL Schema</span>
-        </button>
       </div>
     </nav>
   );

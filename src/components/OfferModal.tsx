@@ -19,6 +19,45 @@ export const OfferModal: React.FC<OfferModalProps> = ({
 }) => {
   if (!offer) return null;
 
+  // Clean price unit string for modal
+  const cleanPriceUnitModal = (unit: string) => {
+    if (!unit) return '';
+    let str = unit;
+    
+    // Remove all exclamation marks
+    str = str.replace(/!/g, '').trim();
+    
+    // Standardize "Välj & blanda" / "!Välj & blanda" -> "Välj bland flera sorter"
+    if (/välj\s*(&|och)?\s*blanda/i.test(str)) {
+      str = str.replace(/välj\s*(&|och)?\s*blanda/gi, 'Välj bland flera sorter');
+    }
+    
+    // Format "4 för 10,00" -> "4 för 10"
+    str = str.replace(/(\d+)\s*för\s*(\d+),00/gi, '$1 för $2');
+    
+    // Add kr if it's purely a multi-buy pattern at the end
+    if (/(^|\s)\d+\s*för\s*\d+(,\d+)?$/i.test(str)) {
+      str += ' kr';
+    }
+
+    if (!str.includes('för')) {
+      str = str.replace(/^[\d.,]+\s*/, '');
+    }
+    
+    return str || 'kr/st';
+  };
+
+  const displayUnit = cleanPriceUnitModal(offer.price_unit);
+  const isMultiBuy = displayUnit.toLowerCase().includes('för');
+  
+  let multiplier = 1;
+  if (isMultiBuy) {
+    const match = displayUnit.match(/^(\d+)\s*för/i) || offer.price_unit.match(/^(\d+)\s*för/i);
+    if (match) {
+      multiplier = parseInt(match[1], 10);
+    }
+  }
+
   const discountPercent =
     offer.original_price && offer.original_price > offer.offer_price
       ? Math.round(((offer.original_price - offer.offer_price) / offer.original_price) * 100)
@@ -26,7 +65,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
 
   const savingsAmount =
     offer.original_price && offer.original_price > offer.offer_price
-      ? (offer.original_price - offer.offer_price).toFixed(2).replace('.', ',')
+      ? ((offer.original_price - offer.offer_price) * multiplier).toFixed(2).replace('.', ',')
       : null;
 
   const handleShare = async () => {
@@ -92,31 +131,31 @@ export const OfferModal: React.FC<OfferModalProps> = ({
           </div>
 
           {/* Price & Savings Box */}
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 flex items-center justify-between shadow-sm">
-            <div>
+          <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex-1 min-w-0">
               <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-1">Erbjudandepris</div>
-              <div className="flex items-baseline gap-1.5 mt-0.5 bg-red-600 text-white px-3 py-2 rounded-xl shadow-sm w-max">
-                {offer.price_unit.toLowerCase().includes('för') ? (
-                  <div className="flex flex-col items-start">
-                    <span className="text-3xl font-black leading-none">
-                      {offer.price_unit}
+              <div className="flex items-baseline gap-1.5 mt-0.5 bg-red-600 text-white px-3 py-2 rounded-xl shadow-sm w-fit max-w-full">
+                {isMultiBuy ? (
+                  <div className="flex flex-col items-start max-w-full">
+                    <span className="text-xl sm:text-3xl font-black leading-tight break-words whitespace-normal">
+                      {displayUnit}
                     </span>
                     <span className="text-sm text-red-100 font-medium mt-1">
                       ({offer.offer_price.toFixed(2).replace('.', ',')} kr/st)
                     </span>
                   </div>
                 ) : (
-                  <>
-                    <span className="text-3xl font-black">
-                      {offer.offer_price.toFixed(2).replace('.', ',')}
+                  <div className="flex items-baseline gap-1.5 max-w-full flex-wrap">
+                    <span className="text-3xl font-black shrink-0">
+                      {offer.offer_price.toString().includes('.') ? offer.offer_price.toFixed(2).replace('.', ',') : offer.offer_price}
                     </span>
-                    <span className="text-sm text-red-100 font-bold">{offer.price_unit}</span>
-                  </>
+                    <span className="text-sm text-red-100 font-bold whitespace-normal break-words">{displayUnit}</span>
+                  </div>
                 )}
               </div>
               
-              <div className="mt-3 space-y-1">
-                {offer.original_price && (
+              <div className="mt-4 space-y-1">
+                {offer.original_price && offer.original_price > offer.offer_price && (
                   <div className="text-xs text-slate-500 line-through font-medium">
                     Ordinarie pris: {offer.original_price.toFixed(2).replace('.', ',')} kr
                   </div>
@@ -126,16 +165,11 @@ export const OfferModal: React.FC<OfferModalProps> = ({
                     Jmf: {offer.compare_price}
                   </div>
                 )}
-                {offer.reference_price && (
-                  <div className="text-xs text-slate-500">
-                    Lägsta 30 dgr: {offer.reference_price.toFixed(2).replace('.', ',')} kr
-                  </div>
-                )}
               </div>
             </div>
 
             {savingsAmount && (
-              <div className="text-right bg-red-50 border border-red-100 p-3 rounded-xl shadow-sm">
+              <div className="text-left sm:text-right bg-red-50 border border-red-100 p-3 rounded-xl shadow-sm shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                 <div className="text-[10px] text-red-600 font-black uppercase tracking-wider">Du sparar</div>
                 <div className="text-2xl font-black text-red-600 mt-0.5">{savingsAmount} kr</div>
                 {discountPercent && (
@@ -151,11 +185,15 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               <div>
                 <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
                   <ShoppingBag className="w-4 h-4 text-slate-400" />
-                  {offer.store?.name || 'Butik i Uppsala'}
+                  {offer.store?.allStoreNames && offer.store.allStoreNames.length > 1 
+                    ? `${offer.store.chain} (${offer.store.allStoreNames.length} butiker)` 
+                    : offer.store?.name || 'Butik i Uppsala'}
                 </h4>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                  <MapPin className="w-3 h-3 shrink-0 text-slate-400" />
-                  {offer.store?.address || 'Uppsala'}
+                <p className="text-xs text-slate-500 mt-1 flex items-start gap-1 font-medium">
+                  <MapPin className="w-3 h-3 shrink-0 text-slate-400 mt-0.5" />
+                  {offer.store?.allStoreNames && offer.store.allStoreNames.length > 1 
+                    ? offer.store.allStoreNames.join(', ')
+                    : offer.store?.address || 'Uppsala'}
                 </p>
               </div>
 

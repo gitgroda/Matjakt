@@ -82,7 +82,7 @@ async function scrapeIcaOffers(store) {
 
       return {
         store_id: store.id,
-        title: title + (mechanic ? ` (${mechanic})` : ''),
+        title: title,
         original_price: regPrice > 0 ? regPrice : null,
         offer_price: Number(offerPrice.toFixed(2)),
         price_unit: mechanic || 'kr/st',
@@ -140,16 +140,26 @@ async function scrapeAxfoodOffers(chain, storeId) {
             compUnit = titleLower.match(/\d+\s*(l|cl|ml)(\s|$)/) ? 'l' : 'kg';
           }
           
-          let pUnit = fullPromoString || (compUnit ? 'kr/' + compUnit : 'kr/st');
+          let pUnit = (fullPromoString.toLowerCase().includes('för') ? fullPromoString : (item.priceUnit || 'kr/st'));
 
           let compPrice = item.comparePrice || promo.comparePrice;
-          if (compPrice && !compPrice.toLowerCase().includes('kr/')) {
-            compPrice = compPrice.replace(' kr', '').trim() + ' kr/' + compUnit;
+          if (compPrice) {
+            const match = compPrice.match(/(\d+[\.,]?\d*)/);
+            if (match && regPrice && regPrice > offerPriceVal) {
+               const origKilo = parseFloat(match[1].replace(',', '.'));
+               const discKilo = origKilo * (offerPriceVal / regPrice);
+               compPrice = discKilo.toFixed(2).replace('.', ',') + ' kr/' + compUnit;
+            } else if (!compPrice.toLowerCase().includes('kr/')) {
+               compPrice = compPrice.replace(' kr', '').trim() + ' kr/' + compUnit;
+            }
+          }
+          if (item.displayVolume) {
+            compPrice = (compPrice ? compPrice + ' • ' : '') + item.displayVolume;
           }
 
           allOffers.push({
             store_id: storeId,
-            title: item.name + (fullPromoString ? ` (${fullPromoString})` : ''),
+            title: item.name,
             original_price: regPrice && regPrice > offerPriceVal ? Number(regPrice.toFixed(2)) : null,
             offer_price: Number(offerPriceVal.toFixed(2)),
             price_unit: pUnit,
@@ -172,6 +182,12 @@ async function scrapeAxfoodOffers(chain, storeId) {
 
 function mapCategoryName(catStr) {
   const c = (catStr || '').toLowerCase();
+  
+  // Mappa icke-mat till en egen kategori baserat på butikernas originalkategorier
+  if (c.includes('hem') || c.includes('fritid') || c.includes('hälsa') || c.includes('skönhet') || c.includes('djur') || c.includes('städ') || c.includes('hygien') || c.includes('apotek')) {
+    return 'Hem & Hygien';
+  }
+  
   if (c.includes('kött') || c.includes('chark') || c.includes('fågel') || c.includes('kott')) return 'Kött & Chark';
   if (c.includes('fisk') || c.includes('skaldjur')) return 'Fisk & Skaldjur';
   if (c.includes('mejeri') || c.includes('ost') || c.includes('ägg') || c.includes('agg')) return 'Mejeri & Ägg';
@@ -181,14 +197,14 @@ function mapCategoryName(catStr) {
   return 'Skafferi';
 }
 
-async function syncAllRealWeeklyCirculars() {
-  console.log('🚀 Startar live-skrapning av RIKTIGA veckans reklamblad för Uppsala-butiker...');
+async function syncAllWeeklyCirculars() {
+  console.log('🚀 Startar live-skrapning av veckans reklamblad för Uppsala-butiker...');
 
   // 1. Skrapa alla ICA-butiker
   for (const st of ICA_STORES) {
     console.log(`📡 Hämtar reklamblad för ${st.name}...`);
     const liveOffers = await scrapeIcaOffers(st);
-    console.log(`  ✓ Hittade ${liveOffers.length} RIKTIGA erbjudanden för ${st.name}`);
+    console.log(`  ✓ Hittade ${liveOffers.length} erbjudanden för ${st.name}`);
 
     if (liveOffers.length > 0) {
       await supabase.from('offers').delete().eq('store_id', st.id);
@@ -203,9 +219,9 @@ async function syncAllRealWeeklyCirculars() {
 
   // 2. Skrapa Willys & Hemköp
   const willysStoreId = '44444444-4444-4444-4444-444444444444';
-  console.log(`📡 Hämtar RIKTIGA erbjudanden för Willys Uppsala...`);
+  console.log(`📡 Hämtar erbjudanden för Willys Uppsala...`);
   const willysOffers = await scrapeAxfoodOffers('Willys', willysStoreId);
-  console.log(`  ✓ Hittade ${willysOffers.length} RIKTIGA erbjudanden för Willys Uppsala`);
+  console.log(`  ✓ Hittade ${willysOffers.length} erbjudanden för Willys Uppsala`);
   if (willysOffers.length > 0) {
     await supabase.from('offers').delete().eq('store_id', willysStoreId);
     for (let i = 0; i < willysOffers.length; i += 50) {
@@ -215,9 +231,9 @@ async function syncAllRealWeeklyCirculars() {
   }
 
   const hemkopStoreId = '66666666-6666-6666-6666-666666666666';
-  console.log(`📡 Hämtar RIKTIGA erbjudanden för Hemköp Svava Uppsala...`);
+  console.log(`📡 Hämtar erbjudanden för Hemköp Svava Uppsala...`);
   const hemkopOffers = await scrapeAxfoodOffers('Hemköp', hemkopStoreId);
-  console.log(`  ✓ Hittade ${hemkopOffers.length} RIKTIGA erbjudanden för Hemköp Svava Uppsala`);
+  console.log(`  ✓ Hittade ${hemkopOffers.length} erbjudanden för Hemköp Svava Uppsala`);
   if (hemkopOffers.length > 0) {
     await supabase.from('offers').delete().eq('store_id', hemkopStoreId);
     for (let i = 0; i < hemkopOffers.length; i += 50) {
@@ -227,7 +243,7 @@ async function syncAllRealWeeklyCirculars() {
   }
 
   const { data: total } = await supabase.from('offers').select('id');
-  console.log(`\n🎉 TOTALT RIKTIGA LIVESKRAPADE ERBJUDANDEN I SUPABASE: ${total?.length}`);
+  console.log(`\n🎉 TOTALT LIVESKRAPADE ERBJUDANDEN I SUPABASE: ${total?.length}`);
 }
 
-syncAllRealWeeklyCirculars();
+syncAllWeeklyCirculars();

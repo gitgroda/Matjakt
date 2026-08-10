@@ -44,64 +44,45 @@ export async function getOffers(params: QueryParams): Promise<{ data: Offer[]; i
 
   if (client) {
     try {
-      let query = client.from('offers').select(`
-        *,
-        store:stores(*)
-      `);
+      const fetchPage = async (pageIndex: number) => {
+        let query = client.from('offers').select(`
+          *,
+          store:stores(*)
+        `);
 
-      // Chain filter
-      if (chain !== 'Alla') {
-        const { data: chainStores, error: storeErr } = await client
-          .from('stores')
-          .select('id')
-          .eq('chain', chain);
+        const from = pageIndex * 1000;
+        const to = from + 999;
+        return await query.range(from, to);
+      };
 
-        if (storeErr) {
-          console.warn('Fel vid hämtning av butiker från Supabase:', storeErr.message);
+      let allData: any[] = [];
+      let currentError = null;
+
+      // Fetch up to 4 pages (4000 items) to ensure we get everything
+      for (let i = 0; i < 4; i++) {
+        const { data, error } = await fetchPage(i);
+        if (error) {
+          currentError = error;
+          break;
         }
-
-        if (chainStores && chainStores.length > 0) {
-          const storeIds = chainStores.map((s) => s.id);
-          query = query.in('store_id', storeIds);
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < 1000) break; // Reached the end
         } else {
-          return { data: [], isLive: true };
+          break;
         }
       }
 
-      // Category filter
-      if (category !== 'Alla') {
-        query = query.eq('category', category);
+      if (currentError && allData.length === 0) {
+        console.warn('Supabase query-fel:', currentError.message);
+        return { data: [], isLive: false, error: currentError.message };
       }
 
-      // Full Text Search or ILIKE on Title & Category
-      const cleanSearch = searchQuery.trim();
-      if (cleanSearch) {
-        query = query.or(`title.ilike.%${cleanSearch}%,category.ilike.%${cleanSearch}%`);
-      }
-
-      // Sorting
-      if (sortBy === 'best-price') {
-        query = query.order('offer_price', { ascending: true });
-      } else if (sortBy === 'alphabetical') {
-        query = query.order('title', { ascending: true });
-      } else if (sortBy === 'ending-soon') {
-        query = query.order('valid_to', { ascending: true });
-      } else if (sortBy === 'discount') {
-        query = query.order('offer_price', { ascending: true });
-      }
-
-      const { data, error } = await query.limit(100);
-
-      if (error) {
-        console.warn('Supabase query-fel:', error.message);
-        return { data: [], isLive: false, error: error.message };
-      }
-
-      if (!data) {
+      if (!allData || allData.length === 0) {
         return { data: [], isLive: true };
       }
 
-      const formattedData: Offer[] = data.map((item: any) => ({
+      const formattedData: Offer[] = allData.map((item: any) => ({
         id: item.id,
         store_id: item.store_id,
         title: item.title,

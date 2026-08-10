@@ -68,71 +68,115 @@ export const OfferCard: React.FC<OfferCardProps> = ({
     onToggleShoppingList(offer, e);
   };
 
+  // Helper to clean and format price unit
+  const cleanPriceUnit = (unit: string) => {
+    if (!unit) return '';
+    let str = unit.toLowerCase();
+    
+    // Remove all exclamation marks (sometimes placed randomly like "!Välj & blanda" or "!24 för 99")
+    str = str.replace(/!/g, '').trim();
+    
+    // Remove "välj & blanda" and variants
+    str = str.replace(/välj\s*(&|och)?\s*blanda/gi, '').trim();
+    str = str.replace(/välj bland flera( sorter)?/gi, '').trim();
+    
+    // Convert "4 för 10,00" -> "4 för 10"
+    str = str.replace(/(\d+)\s*för\s*(\d+),00/gi, '$1 för $2');
+    
+    // Add "kr" if it's just "X för Y" or "X för Y,ZZ"
+    if (/^\d+\s*för\s*\d+(,\d+)?$/.test(str)) {
+      str += ' kr';
+    }
+    
+    // If it's not a multibuy, strip the leading number (e.g. "25 kr/st" -> "kr/st") so we don't duplicate offer_price
+    if (!str.includes('för')) {
+      str = str.replace(/^[\d.,]+\s*/, '');
+    }
+    
+    return str || 'kr/st';
+  };
+
+  const displayUnit = cleanPriceUnit(offer.price_unit);
+  const isMultiBuy = displayUnit.includes('för');
+
   return (
     <div
       onClick={() => onSelectOffer(offer)}
-      className="group relative bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-300 transition-all duration-300 flex flex-col justify-between cursor-pointer"
+      className="group relative bg-white overflow-hidden transform will-change-transform transition-all duration-300 flex flex-col justify-between cursor-pointer border border-slate-100 hover:shadow-xl hover:-translate-y-1.5 hover:z-10"
     >
-      <div>
-        {/* Card Header & Image */}
-        <div className="relative aspect-[4/3] w-full bg-white overflow-hidden flex items-center justify-center p-6">
+      <div className="flex flex-col h-full">
+        {/* Image Container */}
+        <div className="relative aspect-[4/3] w-full bg-[#F8F9FA] flex items-center justify-center p-8">
           <img
             src={offer.image_url}
             alt={offer.title}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-700 ease-out"
             loading="lazy"
           />
 
           {/* Discount Badge */}
           {discountPercent && discountPercent > 0 && (
-            <div className="absolute top-4 right-4 bg-red-600 text-white text-xs font-black px-2.5 py-1 rounded-full shadow-md">
-              -{discountPercent}%
+            <div className="absolute top-4 left-4 bg-[#E31837] text-white text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-none shadow-sm">
+              Spara {discountPercent}%
             </div>
           )}
 
-          {/* Add to Shopping List Floating Button */}
+          {/* Floating Add Button */}
           <button
             onClick={handleAddClick}
-            className={`absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-md ${
+            className={`absolute bottom-4 right-4 w-11 h-11 rounded-none flex items-center justify-center transition-all duration-300 shadow-sm ${
               isInList
-                ? 'bg-emerald-500 text-white scale-105'
-                : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
+                ? 'bg-[#10B981] text-white scale-105'
+                : 'bg-white text-slate-400 hover:bg-slate-900 hover:text-white border border-slate-100'
             }`}
             title={isInList ? 'Borttagen från inköpslista' : 'Spara i inköpslista'}
           >
-            {isInList ? <Check className="w-5 h-5 stroke-[3]" /> : <Plus className="w-5 h-5 stroke-[2.5]" />}
+            {isInList ? <Check className="w-5 h-5 stroke-[2.5]" /> : <Plus className="w-5 h-5 stroke-[2.5]" />}
           </button>
         </div>
 
-        {/* Card Body */}
-        <div className="p-5 flex flex-col justify-between bg-white">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium truncate mb-1">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        {/* Content Body */}
+        <div className="p-5 sm:p-6 flex flex-col justify-between flex-1 bg-white">
+          <div className="mb-4">
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-bold uppercase tracking-wider mb-2">
               <span className="truncate">{offer.store?.name || 'Uppsala'}</span>
             </div>
 
-            <h3 className="text-base font-bold text-slate-900 line-clamp-2 leading-snug mt-1 group-hover:text-red-600 transition-colors">
+            <h3 className="text-base sm:text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-[#E31837] transition-colors min-h-[3rem]">
               {offer.title}
             </h3>
           </div>
 
-          {/* Pricing Section */}
-          <div className="mt-5 flex items-baseline gap-1.5 text-red-600">
-            {offer.price_unit.toLowerCase().includes('för') ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-2xl font-black tracking-tight leading-none">
-                  {offer.price_unit}
+          {/* Typography-driven Price Lockup */}
+          <div className="mt-auto flex flex-col items-start">
+            <div className="flex items-baseline gap-1.5 text-[#E31837] flex-wrap">
+              {isMultiBuy ? (
+                <span className="text-2xl sm:text-3xl font-black tracking-tighter leading-none">
+                  {displayUnit}
                 </span>
-              </div>
-            ) : (
-              <>
-                <span className="text-2xl font-black tracking-tight leading-none">
-                  {offer.offer_price.toFixed(2).replace('.', ',')}
+              ) : (
+                <>
+                  <span className="text-2xl sm:text-3xl font-black tracking-tighter leading-none">
+                    {offer.offer_price.toString().includes('.') ? offer.offer_price.toFixed(2).replace('.', ',') : offer.offer_price}
+                  </span>
+                  <span className="text-sm font-bold tracking-tight">{displayUnit}</span>
+                </>
+              )}
+            </div>
+
+            {/* Sub-pricing info */}
+            <div className="flex flex-col gap-0.5 mt-2">
+              {isMultiBuy && (
+                <span className="text-[11px] font-bold text-[#E31837]/80">
+                  {offer.offer_price.toFixed(2).replace('.', ',')} kr/st
                 </span>
-                <span className="text-sm font-bold">{offer.price_unit}</span>
-              </>
-            )}
+              )}
+              {offer.compare_price && (
+                <span className="text-[11px] font-semibold text-slate-400">
+                  Jmf {offer.compare_price}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

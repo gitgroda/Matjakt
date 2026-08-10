@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
-import { ChainType, Offer, ShoppingListItem, SortOption, Store } from '@/lib/types';
+import React, { useState, useEffect } from 'react';
+import { Offer, ShoppingListItem, SortOption, Store } from '@/lib/types';
 import { getOffers, getStores, isSupabaseConfigured } from '@/lib/supabase';
 import { Header } from '@/components/Header';
 import { OfferCard } from '@/components/OfferCard';
@@ -11,31 +11,29 @@ import { StoresView } from '@/components/StoresView';
 import { SupabaseModal } from '@/components/SupabaseModal';
 import { BottomNav } from '@/components/BottomNav';
 import { EmptyState } from '@/components/EmptyState';
-import { Sparkles, ArrowUpDown, Layers, ShoppingBag } from 'lucide-react';
+import { Sparkles, Layers, ShoppingBag } from 'lucide-react';
 
 export default function Home() {
-  // Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
-  const [selectedChain, setSelectedChain] = useState<ChainType>('Alla');
-  const [selectedCategory, setSelectedCategory] = useState<string>('Alla');
+  const [selectedChains, setSelectedChains] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedIcaStores, setSelectedIcaStores] = useState<string[]>([]);
+  const [isMultiBuyOnly, setIsMultiBuyOnly] = useState<boolean>(false);
   const [sortBy, setSortBy] = useState<SortOption>('best-price');
 
-  // Data & Supabase Status
   const [offers, setOffers] = useState<Offer[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [isLive, setIsLive] = useState<boolean>(isSupabaseConfigured);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Modals & Active Tabs
   const [selectedOfferModal, setSelectedOfferModal] = useState<Offer | null>(null);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'offers' | 'list' | 'stores' | 'sql'>('offers');
 
-  // Shopping List (with LocalStorage persistence)
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(60);
 
-  // Debounce Search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -43,7 +41,6 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Load shopping list from LocalStorage on mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem('matjakt_shopping_list');
@@ -55,7 +52,6 @@ export default function Home() {
     }
   }, []);
 
-  // Sync shopping list to LocalStorage
   useEffect(() => {
     try {
       localStorage.setItem('matjakt_shopping_list', JSON.stringify(shoppingList));
@@ -64,15 +60,12 @@ export default function Home() {
     }
   }, [shoppingList]);
 
-  // Fetch offers whenever filters change
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
 
     getOffers({
       searchQuery: debouncedSearch,
-      chain: selectedChain,
-      category: selectedCategory,
       sortBy: sortBy,
     }).then((res) => {
       if (isMounted) {
@@ -85,16 +78,14 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [debouncedSearch, selectedChain, selectedCategory, sortBy]);
+  }, [debouncedSearch, sortBy]);
 
-  // Fetch stores directory once
   useEffect(() => {
     getStores().then((res) => {
       setStores(res.data);
     });
   }, []);
 
-  // Shopping List Toggle & Quantity handlers
   const handleToggleShoppingList = (offer: Offer, e: React.MouseEvent) => {
     e.stopPropagation();
     setShoppingList((prev) => {
@@ -138,54 +129,84 @@ export default function Home() {
 
   const handleResetFilters = () => {
     setSearchQuery('');
-    setSelectedChain('Alla');
-    setSelectedCategory('Alla');
+    setSelectedChains([]);
+    setSelectedCategories([]);
+    setSelectedIcaStores([]);
+    setIsMultiBuyOnly(false);
     setSortBy('best-price');
   };
 
+  const filteredOffers = offers.filter((offer) => {
+    const isIca = offer.store?.chain === 'ICA';
+    const hasSpecificIca = selectedIcaStores.length > 0;
+    const hasChains = selectedChains.length > 0;
+    
+    let matchesChain = true;
+    if (hasChains || hasSpecificIca) {
+      if (isIca) {
+         const inChains = selectedChains.includes('ICA');
+         const inSpecific = offer.store ? selectedIcaStores.includes(offer.store.name) : false;
+         matchesChain = (inChains && !hasSpecificIca) || inSpecific || (inChains && hasSpecificIca && inSpecific);
+      } else {
+         matchesChain = offer.store ? selectedChains.includes(offer.store.chain) : false;
+      }
+    }
+    
+    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(offer.category);
+    const matchesMultiBuy = !isMultiBuyOnly || (offer.price_unit && offer.price_unit.toLowerCase().includes('för'));
+    
+    return matchesChain && matchesCategory && matchesMultiBuy;
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans selection:bg-red-200 selection:text-red-900">
-      {/* Sticky Header */}
       <Header
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedChain={selectedChain}
-        setSelectedChain={setSelectedChain}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedChains={selectedChains}
+          setSelectedChains={setSelectedChains}
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+          selectedIcaStores={selectedIcaStores}
+          setSelectedIcaStores={setSelectedIcaStores}
+          isMultiBuyOnly={isMultiBuyOnly}
+          setIsMultiBuyOnly={setIsMultiBuyOnly}
+          stores={stores}
         sortBy={sortBy}
         setSortBy={setSortBy}
         isLive={isLive}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
-        totalResultsCount={offers.length}
+        totalResultsCount={filteredOffers.length}
       />
 
-      {/* Main Content Area */}
       <main className="max-w-4xl mx-auto px-4 pt-6">
         {activeTab === 'stores' ? (
           <StoresView
             stores={stores}
             onSelectChain={(c) => {
-              setSelectedChain(c);
+              if (c !== 'Alla') {
+                setSelectedChains([c]);
+              } else {
+                setSelectedChains([]);
+              }
               setActiveTab('offers');
             }}
           />
         ) : (
           <div>
-            {/* Status & Results Summary Bar */}
             <div className="flex items-center justify-between py-2 mb-6 px-1 text-sm text-slate-500 border-b border-slate-200 pb-4">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-slate-700">
-                  {loading ? 'Hämtar erbjudanden...' : `${offers.length} resultat`}
+                  {loading ? 'Hämtar erbjudanden...' : `${filteredOffers.length} resultat`}
                 </span>
-                {selectedChain !== 'Alla' && (
+                {selectedChains.length > 0 && (
                   <span className="text-slate-500">
-                    &bull; {selectedChain}
+                    &bull; {selectedChains.join(', ')}
                   </span>
                 )}
-                {selectedCategory !== 'Alla' && (
+                {selectedCategories.length > 0 && (
                   <span className="text-slate-500">
-                    &bull; {selectedCategory}
+                    &bull; {selectedCategories.join(', ')}
                   </span>
                 )}
               </div>
@@ -201,14 +222,10 @@ export default function Home() {
               )}
             </div>
 
-            {/* Loading Grid Skeleton */}
             {loading ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-2xl p-4 border border-slate-100 animate-pulse space-y-4 shadow-sm"
-                  >
+                  <div key={i} className="bg-white rounded-2xl p-4 border border-slate-100 animate-pulse space-y-4 shadow-sm">
                     <div className="aspect-[4/3] w-full bg-slate-100 rounded-xl" />
                     <div className="h-4 bg-slate-100 rounded w-3/4" />
                     <div className="h-4 bg-slate-100 rounded w-1/2" />
@@ -216,18 +233,18 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-            ) : offers.length === 0 ? (
+            ) : filteredOffers.length === 0 ? (
               <EmptyState
                 searchQuery={searchQuery}
-                selectedChain={selectedChain}
-                selectedCategory={selectedCategory}
-                onResetFilters={handleResetFilters}
+                selectedChains={selectedChains}
+                selectedCategories={selectedCategories}
+                selectedIcaStores={selectedIcaStores}
+                isMultiBuyOnly={isMultiBuyOnly}
+                onClearFilters={handleResetFilters}
               />
             ) : (
-              /* Offers Display */
               <div className="space-y-12">
-                {/* If no active filters, show a curated feed layout */}
-                {!searchQuery && selectedChain === 'Alla' && selectedCategory === 'Alla' ? (
+                {!searchQuery && selectedChains.length === 0 && selectedCategories.length === 0 && selectedIcaStores.length === 0 && !isMultiBuyOnly ? (
                   <>
                     <section>
                       <div className="flex items-center gap-2 mb-4">
@@ -235,7 +252,7 @@ export default function Home() {
                         <h2 className="text-xl font-black text-slate-900 tracking-tight">Veckans bästa klipp</h2>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                        {offers.slice(0, 4).map((offer) => (
+                        {filteredOffers.slice(0, 4).map((offer) => (
                           <OfferCard
                             key={offer.id}
                             offer={offer}
@@ -253,7 +270,7 @@ export default function Home() {
                         <h2 className="text-xl font-black text-slate-900 tracking-tight">Nytt från skafferiet & frukt</h2>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                        {offers
+                        {filteredOffers
                           .filter(o => o.category.includes('Skafferi') || o.category.includes('Frukt'))
                           .slice(0, 8)
                           .map((offer) => (
@@ -271,7 +288,7 @@ export default function Home() {
                     <section>
                       <h2 className="text-xl font-black text-slate-900 tracking-tight mb-4">Fler erbjudanden</h2>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                        {offers.slice(4).map((offer) => (
+                        {filteredOffers.slice(4, visibleCount).map((offer) => (
                           <OfferCard
                             key={offer.id}
                             offer={offer}
@@ -281,20 +298,41 @@ export default function Home() {
                           />
                         ))}
                       </div>
+                      {visibleCount < filteredOffers.length && (
+                        <div className="mt-12 flex justify-center">
+                          <button
+                            onClick={() => setVisibleCount(v => v + 60)}
+                            className="bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 font-bold py-3.5 px-8 rounded-2xl transition-all shadow-sm"
+                          >
+                            Visa fler erbjudanden
+                          </button>
+                        </div>
+                      )}
                     </section>
                   </>
                 ) : (
-                  /* Standard Grid for filtered results */
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
-                    {offers.map((offer) => (
-                      <OfferCard
-                        key={offer.id}
-                        offer={offer}
-                        onSelectOffer={(off) => setSelectedOfferModal(off)}
-                        isInList={shoppingList.some((item) => item.offer.id === offer.id)}
-                        onToggleShoppingList={handleToggleShoppingList}
-                      />
-                    ))}
+                  <div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-5">
+                      {filteredOffers.slice(0, visibleCount).map((offer) => (
+                        <OfferCard
+                          key={offer.id}
+                          offer={offer}
+                          onSelectOffer={(off) => setSelectedOfferModal(off)}
+                          isInList={shoppingList.some((item) => item.offer.id === offer.id)}
+                          onToggleShoppingList={handleToggleShoppingList}
+                        />
+                      ))}
+                    </div>
+                    {visibleCount < filteredOffers.length && (
+                      <div className="mt-12 flex justify-center">
+                        <button
+                          onClick={() => setVisibleCount(v => v + 60)}
+                          className="bg-white border-2 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 font-bold py-3.5 px-8 rounded-2xl transition-all shadow-sm"
+                        >
+                          Visa fler erbjudanden
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -303,7 +341,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* Offer Detail Sheet/Modal */}
       <OfferModal
         offer={selectedOfferModal}
         onClose={() => setSelectedOfferModal(null)}
@@ -313,7 +350,6 @@ export default function Home() {
         onToggleShoppingList={handleToggleShoppingList}
       />
 
-      {/* Shopping List Modal */}
       <ShoppingListModal
         isOpen={activeTab === 'list'}
         onClose={() => setActiveTab('offers')}
@@ -323,14 +359,12 @@ export default function Home() {
         onClearList={handleClearList}
       />
 
-      {/* Supabase SQL Setup Modal */}
       <SupabaseModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
         isLive={isLive}
       />
 
-      {/* Mobile Bottom Navigation */}
       <BottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}

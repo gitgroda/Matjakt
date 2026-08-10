@@ -178,10 +178,10 @@ export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
                       {offer.store?.name || 'Uppsala'}
                     </div>
                     <h4 className="text-sm font-bold text-slate-900 truncate">{offer.title}</h4>
-                    <div className="text-xs font-black text-slate-900 mt-1">
+                    <div className="text-xs font-black text-slate-900 mt-1 truncate">
                       {(offer.offer_price * quantity).toFixed(2).replace('.', ',')} kr
-                      <span className="text-[10px] text-slate-500 font-semibold ml-1">
-                        ({offer.offer_price.toFixed(2).replace('.', ',')} {offer.price_unit})
+                      <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                        ({offer.offer_price.toString().includes('.') ? offer.offer_price.toFixed(2).replace('.', ',') : offer.offer_price} {offer.price_unit.replace(/!/g, '').trim().replace(/^[\d.,]+\s*/, '')})
                       </span>
                     </div>
                   </div>

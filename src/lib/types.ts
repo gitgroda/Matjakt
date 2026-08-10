@@ -8,6 +8,7 @@ export interface Store {
   logo_url: string | null;
   address?: string;
   opening_hours?: string;
+  allStoreNames?: string[];
 }
 
 export interface Offer {
