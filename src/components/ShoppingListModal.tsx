@@ -75,6 +75,7 @@ export const ShoppingListModal: React.FC<ShoppingListModalProps> = ({
     setTimeout(() => setCopied(false), 2500);
   };
 
+  return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-lg bg-white border border-slate-200 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
