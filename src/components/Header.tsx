@@ -14,9 +14,10 @@ interface HeaderProps {
   isMultiBuyOnly: boolean;
   setIsMultiBuyOnly: React.Dispatch<React.SetStateAction<boolean>>;
   stores: Store[];
-    isLive: boolean;
+  isLive: boolean;
   onOpenSupabaseModal: () => void;
   totalResultsCount: number;
+  categoryCounts: Record<string, number>;
 }
 
 const CATEGORIES = [
@@ -42,8 +43,8 @@ export const Header: React.FC<HeaderProps> = ({
   selectedIcaStores, setSelectedIcaStores,
   isMultiBuyOnly, setIsMultiBuyOnly,
   stores,
-  
-  isLive, onOpenSupabaseModal, totalResultsCount
+  isLive, onOpenSupabaseModal, totalResultsCount,
+  categoryCounts
 }) => {
   const toggleChain = (c: string) => setSelectedChains((prev: string[]) => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
   const toggleCategory = (c: string) => setSelectedCategories((prev: string[]) => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
@@ -133,9 +134,14 @@ export const Header: React.FC<HeaderProps> = ({
             <div className={`absolute left-0 top-full pt-1 transition-all duration-200 min-w-[220px] z-50 ${openDropdown === 'kategorier' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
               <div className="bg-white border border-slate-200 shadow-xl p-3 flex flex-col rounded-none max-h-[60vh] overflow-y-auto">
                 {CATEGORIES.map(cat => (
-                  <label key={cat} className="flex items-center gap-2 cursor-pointer p-2 -mx-1 hover:bg-slate-50 rounded-md transition-colors active:bg-slate-100">
-                    <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="w-4 h-4 rounded-none border-slate-300 text-red-600 focus:ring-red-600" />
-                    <span className="text-sm font-semibold text-slate-700">{cat}</span>
+                  <label key={cat} className="flex items-center justify-between cursor-pointer p-2 -mx-1 hover:bg-slate-50 rounded-md transition-colors active:bg-slate-100">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="w-4 h-4 rounded-none border-slate-300 text-red-600 focus:ring-red-600" />
+                      <span className="text-sm font-semibold text-slate-700">{cat}</span>
+                    </div>
+                    {categoryCounts[cat] !== undefined && categoryCounts[cat] > 0 && (
+                      <span className="text-xs font-bold text-slate-400">{categoryCounts[cat]}</span>
+                    )}
                   </label>
                 ))}
               </div>

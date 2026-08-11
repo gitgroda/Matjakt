@@ -133,6 +133,60 @@ export default function Home() {
     setIsMultiBuyOnly(false);
       };
 
+  const categoryCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    const CATEGORIES = [
+      'Kött, fågel & fläsk',
+      'Chark & Färdigmat',
+      'Mejeri, Ost & Ägg',
+      'Frukt & Grönt',
+      'Skafferi',
+      'Fisk & Skaldjur',
+      'Dryck & Godis',
+      'Bröd & Bageri',
+      'Frys',
+      'Hem & Hushåll',
+      'Hälsa & Hygien',
+      'Övrigt'
+    ];
+    for (const cat of CATEGORIES) {
+      counts[cat] = 0;
+    }
+    
+    const filteredForCounts = offers.filter((offer) => {
+      const matchesSearch = !searchQuery || offer.title.toLowerCase().includes(searchQuery.toLowerCase()) || (offer.store && offer.store.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const isIca = offer.store?.chain === 'ICA';
+      const hasSpecificIca = selectedIcaStores.length > 0;
+      const hasChains = selectedChains.length > 0;
+      
+      let matchesChain = true;
+      if (hasChains || hasSpecificIca) {
+        if (isIca) {
+           const inChains = selectedChains.includes('ICA');
+           const inSpecific = offer.store ? selectedIcaStores.includes(offer.store.name) : false;
+           matchesChain = (inChains && !hasSpecificIca) || inSpecific || (inChains && hasSpecificIca && inSpecific);
+        } else {
+           matchesChain = offer.store ? selectedChains.includes(offer.store.chain) : false;
+        }
+      }
+      
+      const matchesMultiBuy = !isMultiBuyOnly || (offer.price_unit && offer.price_unit.toLowerCase().includes('för'));
+      
+      return matchesSearch && matchesChain && matchesMultiBuy;
+    });
+
+    for (const offer of filteredForCounts) {
+      if (counts[offer.category] !== undefined) {
+        counts[offer.category]++;
+      } else {
+        counts[offer.category] = 1;
+      }
+    }
+    
+    return counts;
+  }, [offers, searchQuery, selectedChains, selectedIcaStores, isMultiBuyOnly]);
+
   const filteredOffers = React.useMemo(() => {
     const filtered = offers.filter((offer) => {
       const matchesSearch = !searchQuery || offer.title.toLowerCase().includes(searchQuery.toLowerCase()) || (offer.store && offer.store.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -249,9 +303,10 @@ export default function Home() {
           isMultiBuyOnly={isMultiBuyOnly}
           setIsMultiBuyOnly={setIsMultiBuyOnly}
           stores={stores}
-                isLive={isLive}
+          isLive={isLive}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         totalResultsCount={deduplicatedOffers.length}
+        categoryCounts={categoryCounts}
       />
 
       <main className="max-w-4xl mx-auto px-4 pt-6">
