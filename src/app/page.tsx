@@ -133,100 +133,106 @@ export default function Home() {
     setIsMultiBuyOnly(false);
       };
 
-  const filteredOffers = offers.filter((offer) => {
-    const matchesSearch = !searchQuery || offer.title.toLowerCase().includes(searchQuery.toLowerCase()) || (offer.store && offer.store.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredOffers = React.useMemo(() => {
+    const filtered = offers.filter((offer) => {
+      const matchesSearch = !searchQuery || offer.title.toLowerCase().includes(searchQuery.toLowerCase()) || (offer.store && offer.store.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const isIca = offer.store?.chain === 'ICA';
-    const hasSpecificIca = selectedIcaStores.length > 0;
-    const hasChains = selectedChains.length > 0;
-    
-    let matchesChain = true;
-    if (hasChains || hasSpecificIca) {
-      if (isIca) {
-         const inChains = selectedChains.includes('ICA');
-         const inSpecific = offer.store ? selectedIcaStores.includes(offer.store.name) : false;
-         matchesChain = (inChains && !hasSpecificIca) || inSpecific || (inChains && hasSpecificIca && inSpecific);
+      const isIca = offer.store?.chain === 'ICA';
+      const hasSpecificIca = selectedIcaStores.length > 0;
+      const hasChains = selectedChains.length > 0;
+      
+      let matchesChain = true;
+      if (hasChains || hasSpecificIca) {
+        if (isIca) {
+           const inChains = selectedChains.includes('ICA');
+           const inSpecific = offer.store ? selectedIcaStores.includes(offer.store.name) : false;
+           matchesChain = (inChains && !hasSpecificIca) || inSpecific || (inChains && hasSpecificIca && inSpecific);
+        } else {
+           matchesChain = offer.store ? selectedChains.includes(offer.store.chain) : false;
+        }
+      }
+      
+      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(offer.category);
+      const matchesMultiBuy = !isMultiBuyOnly || (offer.price_unit && offer.price_unit.toLowerCase().includes('för'));
+      
+      return matchesSearch && matchesChain && matchesCategory && matchesMultiBuy;
+    });
+
+    filtered.sort((a, b) => {
+      const discountA = a.original_price ? (a.original_price - a.offer_price) / a.original_price : 0;
+      const discountB = b.original_price ? (b.original_price - b.offer_price) / b.original_price : 0;
+      return discountB - discountA;
+    });
+
+    return filtered;
+  }, [offers, searchQuery, selectedChains, selectedCategories, selectedIcaStores, isMultiBuyOnly]);
+
+  const deduplicatedOffers = React.useMemo(() => {
+    const getFlavorBaseName = (title: string): string | null => {
+      const t = title.toLowerCase();
+      const flavorProducts = [
+        'energidryck', 'celsius', 'nocco', 'monster', 'red bull',
+        'kolsyrat vatten', 'loka', 'ramlösa', 'kvarg', 'yoghurt',
+        'proteinbar', 'barebells', 'kexchoklad', 'läsk', 'fanta', 'coca-cola',
+        'pepsi', 'marabou', 'protein', 'schysst käk', 'soppa', 'färdigrätt',
+        'pizza', 'paj', 'chips', 'olw', 'estrella'
+      ];
+
+      for (const prod of flavorProducts) {
+        if (t.includes(prod)) {
+          return prod.charAt(0).toUpperCase() + prod.slice(1);
+        }
+      }
+      return null;
+    };
+
+    const result: Offer[] = [];
+    const groupingMap = new Map<string, Offer>();
+
+    for (const offer of filteredOffers) {
+      const baseName = getFlavorBaseName(offer.title);
+      let key = '';
+      
+      if (offer.store?.chain === 'ICA') {
+        key = `ICA|${baseName || offer.title}|${offer.offer_price}|${offer.price_unit}`;
+      } else if (baseName) {
+        key = `${offer.store?.id}|${baseName}|${offer.offer_price}|${offer.price_unit}`;
+      }
+
+      if (key && groupingMap.has(key)) {
+        const existing = groupingMap.get(key)!;
+        
+        if (offer.store?.chain === 'ICA' && existing.store && offer.store) {
+          if (!existing.store.allStoreNames) {
+            existing.store.allStoreNames = [existing.store.name];
+          }
+          if (!existing.store.allStoreNames.includes(offer.store.name)) {
+            existing.store.allStoreNames.push(offer.store.name);
+          }
+        }
+        
+        if (baseName && existing.title !== offer.title && !existing.title.includes('(Flera smaker)')) {
+          if (!existing.allFlavors) {
+            existing.allFlavors = [existing.title];
+            existing.title = `${baseName} (Flera smaker)`;
+          }
+          if (!existing.allFlavors.includes(offer.title)) {
+            existing.allFlavors.push(offer.title);
+          }
+        } else if (baseName && existing.title.includes('(Flera smaker)')) {
+            if (!existing.allFlavors) existing.allFlavors = [];
+            if (!existing.allFlavors.includes(offer.title)) existing.allFlavors.push(offer.title);
+        }
       } else {
-         matchesChain = offer.store ? selectedChains.includes(offer.store.chain) : false;
+        const newOffer = { ...offer, store: offer.store ? { ...offer.store, allStoreNames: [offer.store.name] } : undefined };
+        if (key) {
+          groupingMap.set(key, newOffer);
+        }
+        result.push(newOffer);
       }
     }
-    
-    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(offer.category);
-    const matchesMultiBuy = !isMultiBuyOnly || (offer.price_unit && offer.price_unit.toLowerCase().includes('för'));
-    
-    return matchesSearch && matchesChain && matchesCategory && matchesMultiBuy;
-  });
-
-  
-  filteredOffers.sort((a, b) => {
-    const discountA = a.original_price ? (a.original_price - a.offer_price) / a.original_price : 0;
-    const discountB = b.original_price ? (b.original_price - b.offer_price) / b.original_price : 0;
-    return discountB - discountA;
-  });
-
-  const getFlavorBaseName = (title: string): string | null => {
-    const t = title.toLowerCase();
-    const flavorProducts = [
-      'energidryck', 'celsius', 'nocco', 'monster', 'red bull',
-      'kolsyrat vatten', 'loka', 'ramlösa', 'kvarg', 'yoghurt',
-      'proteinbar', 'barebells', 'kexchoklad', 'läsk', 'fanta', 'coca-cola',
-      'pepsi', 'marabou', 'protein', 'schysst käk', 'soppa', 'färdigrätt',
-      'pizza', 'paj', 'chips', 'olw', 'estrella'
-    ];
-
-    for (const prod of flavorProducts) {
-      if (t.includes(prod)) {
-        return prod.charAt(0).toUpperCase() + prod.slice(1);
-      }
-    }
-    return null;
-  };
-
-  const deduplicatedOffers: Offer[] = [];
-  const groupingMap = new Map<string, Offer>();
-
-  for (const offer of filteredOffers) {
-    const baseName = getFlavorBaseName(offer.title);
-    let key = '';
-    
-    if (offer.store?.chain === 'ICA') {
-      key = `ICA|${baseName || offer.title}|${offer.offer_price}|${offer.price_unit}`;
-    } else if (baseName) {
-      key = `${offer.store?.id}|${baseName}|${offer.offer_price}|${offer.price_unit}`;
-    }
-
-    if (key && groupingMap.has(key)) {
-      const existing = groupingMap.get(key)!;
-      
-      if (offer.store?.chain === 'ICA' && existing.store && offer.store) {
-        if (!existing.store.allStoreNames) {
-          existing.store.allStoreNames = [existing.store.name];
-        }
-        if (!existing.store.allStoreNames.includes(offer.store.name)) {
-          existing.store.allStoreNames.push(offer.store.name);
-        }
-      }
-      
-      if (baseName && existing.title !== offer.title && !existing.title.includes('(Flera smaker)')) {
-        if (!existing.allFlavors) {
-          existing.allFlavors = [existing.title];
-          existing.title = `${baseName} (Flera smaker)`;
-        }
-        if (!existing.allFlavors.includes(offer.title)) {
-          existing.allFlavors.push(offer.title);
-        }
-      } else if (baseName && existing.title.includes('(Flera smaker)')) {
-          if (!existing.allFlavors) existing.allFlavors = [];
-          if (!existing.allFlavors.includes(offer.title)) existing.allFlavors.push(offer.title);
-      }
-    } else {
-      const newOffer = { ...offer, store: offer.store ? { ...offer.store, allStoreNames: [offer.store.name] } : undefined };
-      if (key) {
-        groupingMap.set(key, newOffer);
-      }
-      deduplicatedOffers.push(newOffer);
-    }
-  }
+    return result;
+  }, [filteredOffers]);
 
 
   return (
