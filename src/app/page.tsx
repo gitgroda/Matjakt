@@ -27,7 +27,6 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
 
   const [selectedOfferModal, setSelectedOfferModal] = useState<Offer | null>(null);
-  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'offers' | 'list' | 'stores' | 'sql'>('offers');
 
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
@@ -303,8 +302,6 @@ export default function Home() {
           isMultiBuyOnly={isMultiBuyOnly}
           setIsMultiBuyOnly={setIsMultiBuyOnly}
           stores={stores}
-          isLive={isLive}
-        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         totalResultsCount={deduplicatedOffers.length}
         categoryCounts={categoryCounts}
       />
@@ -468,17 +465,10 @@ export default function Home() {
         onClearList={handleClearList}
       />
 
-      <SupabaseModal
-        isOpen={isSupabaseModalOpen}
-        onClose={() => setIsSupabaseModalOpen(false)}
-        isLive={isLive}
-      />
-
       <BottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         shoppingListCount={shoppingList.length}
-        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
     </div>
   );

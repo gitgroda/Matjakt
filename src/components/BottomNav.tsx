@@ -7,14 +7,12 @@ interface BottomNavProps {
   activeTab: 'offers' | 'list' | 'stores' | 'sql';
   setActiveTab: (tab: 'offers' | 'list' | 'stores' | 'sql') => void;
   shoppingListCount: number;
-  onOpenSupabaseModal: () => void;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
   activeTab,
   setActiveTab,
   shoppingListCount,
-  onOpenSupabaseModal,
 }) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] py-2 px-4">

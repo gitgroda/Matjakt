@@ -1,5 +1,6 @@
 import React from 'react';
-import { Search, MapPin, Database, Sparkles, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
+import { Search, MapPin, Database, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { SortOption, Store } from '@/lib/types';
 
 interface HeaderProps {
@@ -14,8 +15,6 @@ interface HeaderProps {
   isMultiBuyOnly: boolean;
   setIsMultiBuyOnly: React.Dispatch<React.SetStateAction<boolean>>;
   stores: Store[];
-  isLive: boolean;
-  onOpenSupabaseModal: () => void;
   totalResultsCount: number;
   categoryCounts: Record<string, number>;
 }
@@ -43,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   selectedIcaStores, setSelectedIcaStores,
   isMultiBuyOnly, setIsMultiBuyOnly,
   stores,
-  isLive, onOpenSupabaseModal, totalResultsCount,
+  totalResultsCount,
   categoryCounts
 }) => {
   const toggleChain = (c: string) => setSelectedChains((prev: string[]) => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
@@ -62,25 +61,18 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 text-slate-900 shadow-sm">
       <div className="max-w-4xl mx-auto px-4 pt-3 pb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center shadow-sm">
-            <Sparkles className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center shadow-sm shrink-0 border border-slate-100">
+            <Image src="/logo.jpg" alt="Matjakt Logo" width={32} height={32} className="object-cover w-full h-full" />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-              Matjakt
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200 uppercase tracking-wide">
+            <h1 className="text-xl font-black tracking-tight flex items-center gap-1.5">
+              <span className="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]">Mat</span>
+              <span className="text-red-600 -ml-1">jakt</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200 uppercase tracking-wide ml-1">
                 Uppsala
               </span>
             </h1>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-            
-          <button onClick={onOpenSupabaseModal} className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-bold transition-all shadow-sm ${isLive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'}`}>
-            <Database className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{isLive ? 'Live' : 'Demo'}</span>
-            <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-          </button>
         </div>
       </div>
 
